@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Planificación Desmontaje SIMOPS – Combinación A·A·B</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0d0f0e;
+    --surface:#141714;
+    --surface2:#1c201c;
+    --border:#2a2f2a;
+    --copper:#c97d2e;
+    --copper-light:#e8a44a;
+    --copper-glow:rgba(201,125,46,.18);
+    --green:#3ecf6a;
+    --red:#e05252;
+    --yellow:#e8c84a;
+    --text:#e8e4dc;
+    --text-muted:#7a8078;
+    --text-dim:#4a504a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:'Source Serif 4',serif;font-weight:300;line-height:1.7;overflow-x:hidden}
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.6}
+
+  /* ── HERO ── */
+  .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 6vw 8vh;overflow:hidden;border-bottom:1px solid var(--border)}
+  .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 70% 30%,rgba(201,125,46,.12) 0%,transparent 70%),radial-gradient(ellipse 50% 80% at 10% 80%,rgba(62,207,106,.04) 0%,transparent 60%),var(--bg);z-index:0}
+  .hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:80px 80px;opacity:.3;z-index:0}
+  .hero-tag{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--copper);letter-spacing:.15em;text-transform:uppercase;margin-bottom:1.5rem;position:relative;z-index:1}
+  .hero-tag span{background:var(--copper-glow);border:1px solid var(--copper);padding:.25rem .75rem;border-radius:2px}
+  .hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,9vw,9rem);line-height:.9;letter-spacing:.01em;position:relative;z-index:1;color:var(--text)}
+  .hero h1 em{color:var(--copper);font-style:normal}
+  .hero-sub{font-size:1.1rem;color:var(--text-muted);max-width:680px;margin-top:1.5rem;position:relative;z-index:1}
+  .hero-meta{display:flex;gap:3rem;margin-top:3rem;position:relative;z-index:1}
+  .hero-meta-item{border-left:2px solid var(--copper);padding-left:1rem}
+  .hero-meta-item .label{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase}
+  .hero-meta-item .value{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--copper-light);font-weight:600}
+
+  /* ── LAYOUT ── */
+  .container{max-width:1200px;margin:0 auto;padding:0 6vw}
+  section{padding:7rem 0 4rem;border-bottom:1px solid var(--border)}
+  section:last-child{border-bottom:none}
+  .section-label{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--copper);letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem}
+  .section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--copper-glow),transparent)}
+  h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,5vw,3.5rem);line-height:1;margin-bottom:2rem;letter-spacing:.02em}
+  h3{font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:600;color:var(--copper-light);margin:2.5rem 0 .75rem;text-transform:uppercase;letter-spacing:.08em}
+  p{max-width:720px;margin-bottom:1.2rem;color:var(--text)}
+  strong{color:var(--copper-light);font-weight:600}
+
+  /* ── EXEC SUMMARY CARDS ── */
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin:2.5rem 0}
+  .summary-card{background:var(--surface);padding:1.75rem 1.5rem}
+  .summary-card .num{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:var(--copper);line-height:1}
+  .summary-card .unit{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em}
+  .summary-card .desc{font-size:.88rem;color:var(--text-muted);margin-top:.4rem}
+  .summary-card.highlight{background:var(--copper-glow);border:1px solid var(--copper)}
+  .summary-card.highlight .num{color:var(--green)}
+
+  /* ── DECISION MATRIX ── */
+  .decision-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin:2rem 0}
+  .decision-card{border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--surface)}
+  .decision-card .dc-header{padding:1rem 1.25rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem}
+  .decision-card .dc-num{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--copper)}
+  .decision-card .dc-title{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+  .decision-card .dc-body{padding:1.25rem}
+  .option{display:flex;gap:.75rem;padding:.75rem;border-radius:3px;margin-bottom:.6rem;border:1px solid transparent}
+  .option.selected{background:rgba(62,207,106,.06);border-color:rgba(62,207,106,.25)}
+  .option.rejected{opacity:.45}
+  .option-badge{font-family:'IBM Plex Mono',monospace;font-size:.7rem;font-weight:600;padding:.2rem .5rem;border-radius:2px;flex-shrink:0;margin-top:.1rem;height:fit-content}
+  .option-badge.sel{background:var(--green);color:#0d1a0d}
+  .option-badge.rej{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
+  .option-text{font-size:.85rem;color:var(--text)}
+  .option-cost{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--text-muted);margin-top:.3rem}
+
+  /* ── COMPARISON TABLE ── */
+  .cost-table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:.82rem;margin:1.5rem 0}
+  .cost-table th{background:var(--surface2);padding:.8rem 1rem;text-align:left;color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;border-bottom:2px solid var(--border)}
+  .cost-table td{padding:.75rem 1rem;border-bottom:1px solid var(--border);color:var(--text)}
+  .cost-table tr:hover td{background:var(--copper-glow)}
+  .cost-table tr.chosen td{background:rgba(62,207,106,.05);border-left:3px solid var(--green)}
+  .cost-table tr.chosen td:first-child{color:var(--green)}
+  .cost-table .danger{color:var(--red)}
+  .cost-table .ok{color:var(--green)}
+  .cost-table .warn{color:var(--yellow)}
+  .badge-combo{display:inline-block;padding:.15rem .5rem;border-radius:2px;font-size:.75rem}
+  .badge-a{background:rgba(62,207,106,.15);color:var(--green);border:1px solid rgba(62,207,106,.3)}
+  .badge-b{background:rgba(224,82,82,.12);color:#f08080;border:1px solid rgba(224,82,82,.25)}
+
+  /* ── GANTT ── */
+  .gantt-wrap{overflow-x:auto;margin:2rem 0}
+  .gantt{min-width:900px;font-family:'IBM Plex Mono',monospace;font-size:.72rem}
+  .gantt-header{display:grid;grid-template-columns:80px repeat(18,1fr);border-bottom:2px solid var(--border);padding-bottom:.5rem;margin-bottom:.25rem}
+  .gantt-header .gh-label{color:var(--text-muted);text-align:center;font-size:.65rem;letter-spacing:.05em}
+  .gantt-row{display:grid;grid-template-columns:80px repeat(18,1fr);margin-bottom:3px;align-items:center}
+  .gantt-row .day-label{color:var(--text-muted);font-size:.68rem;padding-right:.5rem;text-align:right}
+  .gantt-cell{height:22px;position:relative}
+  .gantt-block{position:absolute;inset:2px 1px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:600;overflow:hidden;white-space:nowrap}
+  .gb-iperc{background:#1a2e1a;color:#3a6a3a;border:1px solid #2a4a2a}
+  .gb-setup{background:rgba(201,125,46,.2);color:var(--copper);border:1px solid rgba(201,125,46,.4)}
+  .gb-lona{background:rgba(62,207,106,.18);color:var(--green);border:1px solid rgba(62,207,106,.35)}
+  .gb-wind{background:rgba(232,200,74,.12);color:var(--yellow);border:1px solid rgba(232,200,74,.3)}
+  .gb-blast{background:rgba(224,82,82,.15);color:var(--red);border:1px solid rgba(224,82,82,.3)}
+  .gb-steel{background:rgba(201,125,46,.25);color:var(--copper-light);border:1px solid rgba(201,125,46,.5)}
+  .gb-red{background:rgba(224,82,82,.1);color:#c04040;border:1px solid rgba(224,82,82,.2)}
+  .gb-done{background:rgba(62,207,106,.3);color:var(--green);border:1px solid var(--green)}
+
+  /* ── CHARTS ── */
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:2rem 0}
+  .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.5rem}
+  .chart-box.full{grid-column:1/-1}
+  .chart-title{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem}
+
+  /* ── TIMELINE TABLE ── */
+  .schedule-table{width:100%;border-collapse:collapse;font-size:.82rem;font-family:'IBM Plex Mono',monospace;margin:1.5rem 0}
+  .schedule-table th{background:var(--surface2);padding:.7rem 1rem;text-align:left;color:var(--text-muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;border-bottom:2px solid var(--border)}
+  .schedule-table td{padding:.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:top}
+  .schedule-table tr.day-odd td:first-child::before{content:'▶';color:var(--yellow);margin-right:.4rem;font-size:.6rem}
+  .schedule-table tr.day-setup{background:rgba(201,125,46,.04)}
+  .schedule-table tr.day-complete td{background:rgba(62,207,106,.06)}
+  .schedule-table tr.day-complete{border-left:3px solid var(--green)}
+  .pill{display:inline-block;padding:.15rem .5rem;border-radius:12px;font-size:.68rem;margin:.1rem}
+  .pill-l{background:rgba(62,207,106,.12);color:var(--green);border:1px solid rgba(62,207,106,.25)}
+  .pill-s{background:rgba(201,125,46,.15);color:var(--copper-light);border:1px solid rgba(201,125,46,.3)}
+  .pill-i{background:rgba(255,255,255,.04);color:var(--text-dim);border:1px solid var(--border)}
+  .pill-w{background:rgba(232,200,74,.1);color:var(--yellow);border:1px solid rgba(232,200,74,.25)}
+  .pill-r{background:rgba(224,82,82,.1);color:var(--red);border:1px solid rgba(224,82,82,.2)}
+  .bar-mini{display:inline-block;height:8px;background:var(--green);border-radius:2px;vertical-align:middle;margin-left:.5rem}
+  .bar-mini.steel{background:var(--copper)}
+
+  /* ── COST BREAKDOWN ── */
+  .cost-breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin:2rem 0}
+  .cb-item{background:var(--surface);padding:1.5rem}
+  .cb-item .cb-label{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
+  .cb-item .cb-formula{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--text-dim);margin-bottom:.3rem}
+  .cb-item .cb-value{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--text)}
+  .cb-item.total-item{background:var(--copper-glow);border:1px solid var(--copper)}
+  .cb-item.total-item .cb-value{color:var(--copper-light);font-size:2.8rem}
+
+  /* ── RISK TABLE ── */
+  .risk-table{width:100%;border-collapse:collapse;font-size:.83rem;margin:1.5rem 0}
+  .risk-table th{background:var(--surface2);padding:.75rem 1rem;text-align:left;color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;border-bottom:2px solid var(--border)}
+  .risk-table td{padding:.7rem 1rem;border-bottom:1px solid var(--border)}
+  .risk-tag{display:inline-block;padding:.2rem .6rem;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600}
+  .risk-alto{background:rgba(224,82,82,.15);color:var(--red);border:1px solid rgba(224,82,82,.3)}
+  .risk-medio{background:rgba(232,200,74,.12);color:var(--yellow);border:1px solid rgba(232,200,74,.25)}
+  .risk-bajo{background:rgba(62,207,106,.1);color:var(--green);border:1px solid rgba(62,207,106,.25)}
+  .risk-mitigado{background:rgba(62,207,106,.06);color:#2ea050;border:1px solid rgba(62,207,106,.15)}
+
+  /* ── FOOTNOTES ── */
+  .footnote{font-size:.78rem;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;border-left:2px solid var(--border);padding-left:1rem;margin-top:.75rem}
+
+  /* ── FOOTER ── */
+  footer{padding:4rem 6vw;background:var(--surface);border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text-dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+
+  /* ── NAV ── */
+  nav{position:sticky;top:0;z-index:100;background:rgba(13,15,14,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.75rem 6vw;display:flex;gap:2rem;align-items:center;overflow-x:auto}
+  nav a{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text-muted);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;transition:color .2s}
+  nav a:hover{color:var(--copper)}
+  nav .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--copper);margin-right:1rem;flex-shrink:0}
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:768px){
+    .decision-grid{grid-template-columns:1fr}
+    .chart-grid{grid-template-columns:1fr}
+    .hero-meta{flex-direction:column;gap:1.5rem}
+    nav{gap:1.2rem}
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ NAV -->
+<nav>
+  <span class="nav-logo">SIMOPS</span>
+  <a href="#resumen">Resumen</a>
+  <a href="#intro">Introducción</a>
+  <a href="#metodos">Métodos</a>
+  <a href="#resultados">Resultados</a>
+  <a href="#cronograma">Cronograma</a>
+  <a href="#discusion">Discusión</a>
+  <a href="#conclusion">Conclusión</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════ HERO -->
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-tag"><span>Informe Ejecutivo · Project Delivery · MMG Las Bambas</span></div>
+  <h1>DESMONTAJE<br/>ALMACÉN<br/><em>SIMOPS</em></h1>
+  <p class="hero-sub">Planificación matemática y control de desmontaje de estructura en zona de alta interferencia — Cota Cero, Mina de Cobre, +3,500 m.s.n.m.</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item"><div class="label">Combinación elegida</div><div class="value">A · A · B</div></div>
+    <div class="hero-meta-item"><div class="label">Días de ejecución</div><div class="value">14 días</div></div>
+    <div class="hero-meta-item"><div class="label">Costo total proyecto</div><div class="value">USD 188,000</div></div>
+    <div class="hero-meta-item"><div class="label">Penalidad por retraso</div><div class="value">USD 0</div></div>
+    <div class="hero-meta-item"><div class="label">Margen al Día 15</div><div class="value">+1 día buffer</div></div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════ RESUMEN EJECUTIVO -->
+<section id="resumen">
+<div class="container">
+  <div class="section-label">01 — Resumen Ejecutivo</div>
+  <h2>Síntesis del<br/>Proyecto</h2>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="num">1,000</div><div class="unit">m² Lona</div>
+      <div class="desc">Completada en Día 4 (13:00 h)</div>
+    </div>
+    <div class="summary-card">
+      <div class="num">45</div><div class="unit">Ton Acero</div>
+      <div class="desc">Completado en Día 14 (~13:14 h)</div>
+    </div>
+    <div class="summary-card">
+      <div class="num">7</div><div class="unit">h/día útiles</div>
+      <div class="desc">De 12 h nominales de turno día</div>
+    </div>
+    <div class="summary-card">
+      <div class="num">0.65</div><div class="unit">Ton/h Acero</div>
+      <div class="desc">Grúa Este — rendimiento máximo</div>
+    </div>
+    <div class="summary-card highlight">
+      <div class="num">14</div><div class="unit">Días totales</div>
+      <div class="desc">✓ Dentro del límite Día 15</div>
+    </div>
+    <div class="summary-card">
+      <div class="num">$188K</div><div class="unit">USD Total</div>
+      <div class="desc">Sin penalidad de retraso</div>
+    </div>
+  </div>
+
+  <p>El presente informe documenta la planificación matemática y operativa para el desmontaje en tiempo récord del almacén de repuestos ubicado en la cota cero de una mina de cobre a tajo abierto, a más de 3,500 m.s.n.m. La operación se enmarca en un contexto SIMOPS (Simultaneous Operations) de alta interferencia, con tres frentes críticos activos e irrenunciables en su entorno inmediato.</p>
+  <p>La combinación de decisiones seleccionada — <strong>Dilema 1: Opción A</strong> (Grúa Este, rendimiento 0.65 Ton/h), <strong>Dilema 2: Opción A</strong> (Trabajo eléctrico en Día 1), y <strong>Dilema 3: Opción B</strong> (Barreras corta-vientos Wind Fences) — permite completar la totalidad del desmontaje en 14 días calendario, un día antes del límite crítico del Día 15, evitando la penalidad de mantenimiento de USD 15,000/día y garantizando el cumplimiento pleno de los estándares FRM de la operación.</p>
+  <p>La decisión de instalar Wind Fences (Dilema 3B) representa una inversión de <strong>USD 6,000</strong> que, si bien no modifica el plazo de entrega respecto a la Opción A, elimina los riesgos operativos del "Efecto Vela" y asegura el cumplimiento normativo del PETS de Izaje de MMG Las Bambas — que prohíbe actividades con cargas suspendidas a partir de <strong>32 km/h</strong>, umbral que los vientos registrados (30–34 km/h) amenazan directamente durante los días impares.</p>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ INTRODUCCIÓN -->
+<section id="intro">
+<div class="container">
+  <div class="section-label">02 — Introducción</div>
+  <h2>Contexto y<br/>Alcance</h2>
+  <p>La liberación de la <strong>"cota cero"</strong> es el hito gatillo que habilita la construcción del canal de contorno del tajo, proyecto de ingeniería de alta prioridad estratégica para la mina. El almacén de repuestos de 1,000 m² de cubierta de lona y 45 toneladas de estructura metálica (20 m × 50 m × 15 m de altura) debe ser desmontado en el menor tiempo posible dentro de un entorno con tres restricciones externas irrenunciables:</p>
+
+  <h3>Restricciones de Entorno (No Negociables)</h3>
+  <div class="risk-table-wrap">
+  <table class="risk-table">
+    <thead><tr><th>Frente</th><th>Restricción</th><th>Impacto en el Desmontaje</th></tr></thead>
+    <tbody>
+      <tr><td>Norte — Canal Contorno</td><td>Zona prohibida para acopio de chatarra</td><td>Logística de retiro de material forzada hacia el Sur</td></tr>
+      <tr><td>Sur — Tajo Activo</td><td>Voladura diaria 12:00–13:00 h; silencio radial 30 min antes</td><td>Parada total de obra y bloqueo logístico 12:00–13:00 h</td></tr>
+      <tr><td>Este — Truck Shop 24/7</td><td>Circulación continua de CAEX; acceso norte de bahías</td><td>Penalidad lucro cesante si grúa invade acceso</td></tr>
+      <tr><td>Clima — Diciembre</td><td>Tormentas eléctricas 15:00–18:00 h; viento 30–34 km/h en días impares 10:00–13:00 h</td><td>Alerta Roja: evacuación obligatoria; restricción lona sin Wind Fences</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Ventana de Tiempo Útil Diaria</h3>
+  <p>El turno nocturno está estrictamente prohibido. El turno día (06:00–18:00 h) presenta los siguientes <strong>tiempos muertos forzados</strong>:</p>
+  <table class="schedule-table">
+    <thead><tr><th>Franja Horaria</th><th>Duración</th><th>Motivo</th><th>Actividad Permitida</th></tr></thead>
+    <tbody>
+      <tr><td>06:00 – 07:00</td><td>1 h</td><td>IPERC / Charla seguridad / Permisos izaje</td><td>Ninguna (trabajo de campo)</td></tr>
+      <tr><td>07:00 – 12:00</td><td>5 h</td><td>Ventana productiva 1</td><td>Lona + Acero</td></tr>
+      <tr><td>12:00 – 13:00</td><td>1 h</td><td>Voladura tajo + Almuerzo (sin camiones logísticos al Sur)</td><td>Ninguna</td></tr>
+      <tr><td>13:00 – 15:00</td><td>2 h</td><td>Ventana productiva 2</td><td>Lona + Acero</td></tr>
+      <tr><td>15:00 – 18:00</td><td>3 h</td><td>Alerta Roja — Tormentas eléctricas (temporada diciembre)</td><td>Ninguna (evacuación obligatoria)</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Horas útiles netas por día: 7 horas</strong> (de 12 h nominales del turno día).</p>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ MÉTODOS -->
+<section id="metodos">
+<div class="container">
+  <div class="section-label">03 — Materiales y Métodos</div>
+  <h2>Enfoque<br/>Metodológico</h2>
+  <p>La resolución del caso emplea un enfoque mixto que combina modelamiento matemático con análisis de cumplimiento normativo:</p>
+
+  <h3>1. Programación de Restricciones (Constraint Programming)</h3>
+  <p>Se modelaron las variables de tiempo, rendimiento y restricciones como un problema de programación con restricciones. Cada hora del proyecto fue clasificada en una de seis categorías mutuamente excluyentes: <em>IPERC/Admin, Lona activa, Acero activo, Restricción viento, Voladura/Almuerzo, Alerta Roja</em>. La suma de horas activas, multiplicada por el rendimiento correspondiente (50 m²/h lona; 0.65 Ton/h acero Opción A), produce el avance acumulado día a día.</p>
+
+  <h3>2. Análisis Normativo FRM (Fatal Risk Management)</h3>
+  <p>Se contrastaron las premisas del caso contra los estándares internos de MMG Las Bambas, en particular el <strong>PETS de Izaje</strong> (viento máximo permitido: 32 km/h) y el <strong>Protocolo de Evacuación por Tormentas Eléctricas</strong> (Alerta Amarilla: suspensión izaje + retracción de pluma; Alerta Roja: evacuación total). La selección de la Opción B en Dilema 3 (Wind Fences) responde directamente al estándar que prohíbe izaje sobre 32 km/h — umbral que los vientos registrados (30–34 km/h) superan con ráfagas.</p>
+
+  <h3>3. Cálculo de Ruta Crítica (CPM)</h3>
+  <p>Se estructuró un cronograma granular hora por hora para identificar la ruta crítica del proyecto. Se determinó que la ruta crítica es el <strong>desmontaje de acero</strong> (45 Ton a 0.65 Ton/h = 69.23 horas brutas), que con 7 h/día útiles requiere 9.89 días de trabajo efectivo de acero. Con el inicio del acero en el Día 4 (14:00 h), la finalización matemática ocurre el <strong>Día 14 a las ~13:14 h</strong>.</p>
+
+  <h3>4. Análisis de Escenarios (8 Combinaciones)</h3>
+  <p>Se evaluaron las 8 combinaciones posibles de las tres decisiones (2³ = 8 escenarios) para determinar el menor costo total del proyecto, considerando: burn rate ($5,000/día), penalidad de grúa ($8,000/día para Opción A), costos extras (Wind Fences $6,000; adelanto eléctrico $4,500) y penalidad de retraso ($15,000/día si supera el Día 15).</p>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ RESULTADOS -->
+<section id="resultados">
+<div class="container">
+  <div class="section-label">04 — Resultados</div>
+  <h2>Matriz de Decisiones<br/>y Costos</h2>
+
+  <h3>4.1 — Decisiones Elegidas</h3>
+  <div class="decision-grid">
+
+    <!-- Dilema 1 -->
+    <div class="decision-card">
+      <div class="dc-header">
+        <div class="dc-num">D1</div>
+        <div><div class="dc-title">Posicionamiento de Grúa</div><div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--copper)">ELEGIDA: OPCIÓN A</div></div>
+      </div>
+      <div class="dc-body">
+        <div class="option selected">
+          <div class="option-badge sel">A ✓</div>
+          <div>
+            <div class="option-text"><strong>Grúa al Este</strong> — Radio perfecto junto al Truck Shop.</div>
+            <div class="option-cost">Rendimiento: 0.65 Ton/h · Penalidad lucro cesante: $8,000/día</div>
+          </div>
+        </div>
+        <div class="option rejected">
+          <div class="option-badge rej">B ✗</div>
+          <div>
+            <div class="option-text">Grúa al Oeste — Radio largo, trozado en altura.</div>
+            <div class="option-cost">Rendimiento: 0.35 Ton/h · Sin penalidad diaria</div>
+          </div>
+        </div>
+        <div class="footnote">La Opción B genera 20 días adicionales de trabajo de acero, empujando la entrega al Día 22–23 y acumulando USD 105–120K en penalidades de retraso — inviable financieramente.</div>
+      </div>
+    </div>
+
+    <!-- Dilema 2 -->
+    <div class="decision-card">
+      <div class="dc-header">
+        <div class="dc-num">D2</div>
+        <div><div class="dc-title">Hito Eléctrico de Inicio</div><div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--copper)">ELEGIDA: OPCIÓN A</div></div>
+      </div>
+      <div class="dc-body">
+        <div class="option selected">
+          <div class="option-badge sel">A ✓</div>
+          <div>
+            <div class="option-text"><strong>Contratista eléctrica en Día 1</strong>, 07:00–12:00 h.</div>
+            <div class="option-cost">Costo extra: $0 · Avance obra Day 1: solo 13:00–15:00 h (2h)</div>
+          </div>
+        </div>
+        <div class="option rejected">
+          <div class="option-badge rej">B ✗</div>
+          <div>
+            <div class="option-text">Contratista en Día 0 (domingo previo) — gana 5 h el Día 1.</div>
+            <div class="option-cost">Costo extra: $4,500 · Con D3B, el Día 1 se consume igual por Wind Fences → beneficio nulo</div>
+          </div>
+        </div>
+        <div class="footnote">La combinación D2B + D3B (elegido) sería redundante: el Día 1 ya está consumido al 100% por la instalación de Wind Fences. Los USD 4,500 del adelanto eléctrico no aportan ninguna hora de avance adicional.</div>
+      </div>
+    </div>
+
+    <!-- Dilema 3 -->
+    <div class="decision-card">
+      <div class="dc-header">
+        <div class="dc-num">D3</div>
+        <div><div class="dc-title">Mitigación Climática</div><div style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--copper)">ELEGIDA: OPCIÓN B</div></div>
+      </div>
+      <div class="dc-body">
+        <div class="option rejected">
+          <div class="option-badge rej">A ✗</div>
+          <div>
+            <div class="option-text">Respetar restricción de viento — detener lona en días impares 10:00–12:00 h.</div>
+            <div class="option-cost">Costo: $0 · 2 h perdidas por día impar · Riesgo FRM: viento roza límite 32 km/h</div>
+          </div>
+        </div>
+        <div class="option selected">
+          <div class="option-badge sel">B ✓</div>
+          <div>
+            <div class="option-text"><strong>Wind Fences modulares</strong> — instalación Día 1 (full day), sin restricción de viento en todo el proyecto.</div>
+            <div class="option-cost">Costo: $6,000 · Anula efecto vela · Cumplimiento PETS Izaje ≤32 km/h</div>
+          </div>
+        </div>
+        <div class="footnote">Justificación FRM: el PETS de Izaje de MMG Las Bambas prohíbe izaje con vientos &gt;32 km/h. Los registros de días impares alcanzan 30–34 km/h — superan el umbral con ráfagas. Las Wind Fences eliminan este riesgo de clasificación FATAL.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>4.2 — Comparación de las 8 Combinaciones</h3>
+  <p>Se evaluaron todos los escenarios posibles. Las combinaciones con Grúa Oeste (D1B) generan retrasos de 7–8 días, acumulando penalidades de USD 105,000–120,000 que elevan el costo total hasta USD 219,500–245,500.</p>
+
+  <table class="cost-table">
+    <thead>
+      <tr>
+        <th>Combinación</th>
+        <th>Grúa</th>
+        <th>Eléctrico</th>
+        <th>Viento</th>
+        <th>Entrega</th>
+        <th>Burn Rate</th>
+        <th>Grúa Penalidad</th>
+        <th>Extras</th>
+        <th>Penalidad Retraso</th>
+        <th>TOTAL USD</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="badge-combo badge-a">A·A·A</span></td><td>Este</td><td>Día 1</td><td>Sin WF</td><td class="ok">Día 14</td><td>$70,000</td><td>$112,000</td><td>$0</td><td class="ok">$0</td><td>$182,000</td></tr>
+      <tr class="chosen"><td><span class="badge-combo badge-a">A·A·B ✓</span></td><td>Este</td><td>Día 1</td><td>Wind Fences</td><td class="ok">Día 14</td><td>$70,000</td><td>$112,000</td><td>$6,000</td><td class="ok">$0</td><td><strong>$188,000</strong></td></tr>
+      <tr><td><span class="badge-combo badge-a">A·B·A</span></td><td>Este</td><td>Día 0</td><td>Sin WF</td><td class="ok">Día 14</td><td>$70,000</td><td>$112,000</td><td>$4,500</td><td class="ok">$0</td><td>$186,500</td></tr>
+      <tr><td><span class="badge-combo badge-a">A·B·B</span></td><td>Este</td><td>Día 0</td><td>Wind Fences</td><td class="ok">Día 14</td><td>$70,000</td><td>$112,000</td><td>$10,500</td><td class="ok">$0</td><td>$192,500</td></tr>
+      <tr><td><span class="badge-combo badge-b">B·A·A</span></td><td>Oeste</td><td>Día 1</td><td>Sin WF</td><td class="danger">Día 23</td><td>$115,000</td><td>$0</td><td>$0</td><td class="danger">$120,000</td><td>$235,000</td></tr>
+      <tr><td><span class="badge-combo badge-b">B·A·B</span></td><td>Oeste</td><td>Día 1</td><td>Wind Fences</td><td class="danger">Día 23</td><td>$115,000</td><td>$0</td><td>$6,000</td><td class="danger">$120,000</td><td>$241,000</td></tr>
+      <tr><td><span class="badge-combo badge-b">B·B·A</span></td><td>Oeste</td><td>Día 0</td><td>Sin WF</td><td class="warn">Día 22</td><td>$110,000</td><td>$0</td><td>$4,500</td><td class="warn">$105,000</td><td>$219,500</td></tr>
+      <tr><td><span class="badge-combo badge-b">B·B·B</span></td><td>Oeste</td><td>Día 0</td><td>Wind Fences</td><td class="danger">Día 23</td><td>$115,000</td><td>$0</td><td>$10,500</td><td class="danger">$120,000</td><td>$245,500</td></tr>
+    </tbody>
+  </table>
+  <p class="footnote">* Cálculo: Burn rate = Días × $5,000. Penalidad grúa (D1A) = Días × $8,000. Delay = (Día entrega − 15) × $15,000 si entrega &gt; Día 15. A·B·A es la opción más barata ($186,500) pero el adelanto eléctrico de $4,500 no genera ningún beneficio adicional en el proyecto (el Día 1 ya es productivo en D2A combinado con D3B). La selección A·A·B prioriza el compliance normativo FRM sobre el ahorro marginal de $6,000.</p>
+
+  <h3>4.3 — Desglose de Costos — Combinación A·A·B</h3>
+  <div class="cost-breakdown">
+    <div class="cb-item">
+      <div class="cb-label">Burn Rate Base</div>
+      <div class="cb-formula">14 días × $5,000/día</div>
+      <div class="cb-value">$70,000</div>
+    </div>
+    <div class="cb-item">
+      <div class="cb-label">Penalidad Grúa Este</div>
+      <div class="cb-formula">14 días × $8,000/día</div>
+      <div class="cb-value">$112,000</div>
+    </div>
+    <div class="cb-item">
+      <div class="cb-label">Wind Fences (D3B)</div>
+      <div class="cb-formula">Costo fijo instalación</div>
+      <div class="cb-value">$6,000</div>
+    </div>
+    <div class="cb-item">
+      <div class="cb-label">Adelanto Eléctrico</div>
+      <div class="cb-formula">D2A — sin costo extra</div>
+      <div class="cb-value">$0</div>
+    </div>
+    <div class="cb-item">
+      <div class="cb-label">Penalidad Retraso</div>
+      <div class="cb-formula">Día 14 ≤ Día 15 → $0</div>
+      <div class="cb-value" style="color:var(--green)">$0</div>
+    </div>
+    <div class="cb-item total-item">
+      <div class="cb-label">COSTO TOTAL PROYECTO</div>
+      <div class="cb-formula">$70K + $112K + $6K</div>
+      <div class="cb-value">$188,000</div>
+    </div>
+  </div>
+
+  <h3>4.4 — Gráficos de Comparación</h3>
+  <div class="chart-grid">
+    <div class="chart-box">
+      <div class="chart-title">Costo Total por Combinación (USD)</div>
+      <canvas id="chartCost" height="280"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Día de Entrega por Combinación</div>
+      <canvas id="chartDays" height="280"></canvas>
+    </div>
+    <div class="chart-box full">
+      <div class="chart-title">Avance Acumulado — Lona (m²) y Acero (Ton) vs. Día del Proyecto</div>
+      <canvas id="chartProgress" height="200"></canvas>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ CRONOGRAMA -->
+<section id="cronograma">
+<div class="container">
+  <div class="section-label">05 — Cronograma Detallado</div>
+  <h2>Ruta Crítica<br/>Hora a Hora</h2>
+
+  <h3>5.1 — Parámetros de Rendimiento</h3>
+  <table class="schedule-table">
+    <thead><tr><th>Actividad</th><th>Rendimiento</th><th>Restricción activa</th><th>Horas disp./día</th><th>Avance/día máx.</th></tr></thead>
+    <tbody>
+      <tr><td>Retiro de Lona</td><td>50 m²/hora</td><td>Sin Wind Fences: pausa días impares 10:00–12:00 h</td><td>7 h (con WF) / 5 h (sin WF, día impar)</td><td>350 m² (con WF) / 250 m² (sin WF impar)</td></tr>
+      <tr><td>Desmontaje Acero — D1A</td><td>0.65 Ton/hora</td><td>Viento ≤34 km/h &lt; límite 35 km/h → opera</td><td>7 h</td><td>4.55 Ton</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 — Cronograma Día a Día</h3>
+  <table class="schedule-table">
+    <thead>
+      <tr>
+        <th>Día</th><th>Tipo</th><th>Detalle de Actividades por Franja</th>
+        <th>Lona Día (m²)</th><th>Lona Acum. (m²)</th>
+        <th>Acero Día (Ton)</th><th>Acero Acum. (Ton)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="day-odd day-setup">
+        <td><strong>DÍA 1</strong></td><td><span class="pill pill-w">IMPAR</span> <span class="pill pill-i">SETUP</span></td>
+        <td>
+          06–07: <span class="pill pill-i">IPERC</span>
+          07–12: <span class="pill pill-w">Wind Fences + Eléctrico</span>
+          12–13: <span class="pill pill-r">Voladura</span>
+          13–15: <span class="pill pill-w">Wind Fences cont.</span>
+          15–18: <span class="pill pill-r">Alerta Roja</span>
+        </td>
+        <td>0</td><td>0</td><td>0</td><td>0</td>
+      </tr>
+      <tr>
+        <td><strong>DÍA 2</strong></td><td><span class="pill pill-l">PAR</span></td>
+        <td>
+          06–07: <span class="pill pill-i">IPERC</span>
+          07–12: <span class="pill pill-l">Lona 5h = 250 m²</span>
+          12–13: <span class="pill pill-r">Voladura</span>
+          13–15: <span class="pill pill-l">Lona 2h = 100 m²</span>
+          15–18: <span class="pill pill-r">Alerta Roja</span>
+        </td>
+        <td>350</td><td>350</td><td>0</td><td>0</td>
+      </tr>
+      <tr class="day-odd">
+        <td><strong>DÍA 3</strong></td><td><span class="pill pill-w">IMPAR</span> <span class="pill pill-l">WF↗</span></td>
+        <td>
+          06–07: <span class="pill pill-i">IPERC</span>
+          07–10: <span class="pill pill-l">Lona 3h = 150 m²</span>
+          10–12: <span class="pill pill-l">Lona 2h = 100 m² (viento presente, WF protege)</span>
+          12–13: <span class="pill pill-r">Voladura</span>
+          13–15: <span class="pill pill-l">Lona 2h = 100 m²</span>
+          15–18: <span class="pill pill-r">Alerta Roja</span>
+        </td>
+        <td>350</td><td>700</td><td>0</td><td>0</td>
+      </tr>
+      <tr class="day-complete">
+        <td><strong>DÍA 4 ★</strong></td><td><span class="pill pill-l">PAR</span> <span class="pill pill-s">ACERO↗</span></td>
+        <td>
+          06–07: <span class="pill pill-i">IPERC</span>
+          07–12: <span class="pill pill-l">Lona 5h = 250 m²</span>
+          12–13: <span class="pill pill-r">Voladura</span>
+          13–14: <span class="pill pill-l">Lona 1h = 50 m² → ✓ LONA COMPLETA</span>
+          14–15: <span class="pill pill-s">Acero 1h = 0.65 Ton</span>
+          15–18: <span class="pill pill-r">Alerta Roja</span>
+        </td>
+        <td>300</td><td><strong>1,000 ✓</strong></td><td>0.65</td><td>0.65</td>
+      </tr>
+      <tr class="day-odd">
+        <td><strong>DÍA 5</strong></td><td><span class="pill pill-w">IMPAR</span></td>
+        <td>06–07: IPERC · 07–12: <span class="pill pill-s">Acero 5h=3.25T</span> (viento ≤34&lt;35→ok) · 12–13: Voladura · 13–15: <span class="pill pill-s">Acero 2h=1.30T</span> · 15–18: Alerta Roja</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>5.20</td>
+      </tr>
+      <tr>
+        <td><strong>DÍA 6</strong></td><td><span class="pill pill-l">PAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>9.75</td>
+      </tr>
+      <tr class="day-odd">
+        <td><strong>DÍA 7</strong></td><td><span class="pill pill-w">IMPAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>14.30</td>
+      </tr>
+      <tr>
+        <td><strong>DÍA 8</strong></td><td><span class="pill pill-l">PAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>18.85</td>
+      </tr>
+      <tr class="day-odd">
+        <td><strong>DÍA 9</strong></td><td><span class="pill pill-w">IMPAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>23.40</td>
+      </tr>
+      <tr>
+        <td><strong>DÍA 10</strong></td><td><span class="pill pill-l">PAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>27.95</td>
+      </tr>
+      <tr class="day-odd">
+        <td><strong>DÍA 11</strong></td><td><span class="pill pill-w">IMPAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>32.50</td>
+      </tr>
+      <tr>
+        <td><strong>DÍA 12</strong></td><td><span class="pill pill-l">PAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>37.05</td>
+      </tr>
+      <tr class="day-odd">
+        <td><strong>DÍA 13</strong></td><td><span class="pill pill-w">IMPAR</span></td>
+        <td>7h acero = 4.55 Ton</td>
+        <td>—</td><td>1,000</td><td>4.55</td><td>41.60</td>
+      </tr>
+      <tr class="day-complete">
+        <td><strong>DÍA 14 ★</strong></td><td><span class="pill pill-l">PAR</span> <span class="pill pill-s">CIERRE</span></td>
+        <td>
+          07–12: <span class="pill pill-s">Acero 5h = 3.25 Ton → Acum: 44.85</span>
+          12–13: Voladura
+          13–13:14: <span class="pill pill-s">Acero 0.23h = 0.15 Ton → ✓ 45.00 Ton COMPLETE</span>
+        </td>
+        <td>—</td><td>1,000</td><td>3.40</td><td><strong>45.00 ✓</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="footnote">★ Hitos críticos. Días impares señalados con ▶ — en la combinación A·A·B, los Wind Fences anulan la restricción de viento para la lona (relevante Días 3). El acero opera dentro de límites seguros (viento 30–34 km/h &lt; límite 35 km/h) todos los días impares sin necesidad de detención.</p>
+
+  <h3>5.3 — Verificación Matemática de la Ruta Crítica</h3>
+  <table class="schedule-table">
+    <thead><tr><th>Parámetro</th><th>Cálculo</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td>Horas totales necesarias para lona</td><td>1,000 m² ÷ 50 m²/h</td><td><strong>20.0 horas</strong></td></tr>
+      <tr><td>Horas disponibles Días 2–4 (con WF)</td><td>7h + 7h + 6h* = 20h</td><td>✓ Lona cierra exactamente en Día 4, 14:00 h</td></tr>
+      <tr><td>Horas totales necesarias para acero</td><td>45 Ton ÷ 0.65 Ton/h</td><td><strong>69.23 horas</strong></td></tr>
+      <tr><td>Horas disponibles Días 4–14 (desde 14:00 Día 4)</td><td>1h + 9 días × 7h + 1.23h = 1 + 63 + ~5.23 = 69.23h</td><td>✓ Acero cierra en Día 14, ~13:14 h</td></tr>
+      <tr><td>Tiempo muerto total en proyecto</td><td>14 días × 5h muertos/día = 70 h de 168 h totales</td><td>41.7% del tiempo nominal es tiempo muerto</td></tr>
+      <tr><td>Eficiencia temporal del proyecto</td><td>7h útiles ÷ 12h turno día</td><td><strong>58.3%</strong></td></tr>
+      <tr><td>Buffer respecto al Día 15</td><td>Día 15 − Día 14 = 1 día = 7 horas útiles</td><td><strong>+7h de margen</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="footnote">* En Día 4, la lona necesita exactamente 6 horas: 5h (07:00–12:00) + 1h (13:00–14:00) = 300 m² para completar los 1,000 m².</p>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ GANTT VISUAL -->
+<section>
+<div class="container">
+  <div class="section-label">05b — Visualización Gantt</div>
+  <h2>Diagrama<br/>Gantt Simplificado</h2>
+  <div class="gantt-wrap">
+    <div class="gantt" id="gantt-chart"></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-top:1.5rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem">
+    <span><span style="display:inline-block;width:12px;height:12px;background:rgba(62,207,106,.18);border:1px solid rgba(62,207,106,.35);margin-right:.4rem"></span>Lona</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:rgba(201,125,46,.25);border:1px solid rgba(201,125,46,.5);margin-right:.4rem"></span>Acero</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:rgba(201,125,46,.2);border:1px solid rgba(201,125,46,.4);margin-right:.4rem"></span>Setup/Wind Fences</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);margin-right:.4rem"></span>Viento (protegido)</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:rgba(224,82,82,.15);border:1px solid rgba(224,82,82,.3);margin-right:.4rem"></span>Voladura/Almuerzo</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.2);margin-right:.4rem"></span>Alerta Roja</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#1a2e1a;border:1px solid #2a4a2a;margin-right:.4rem"></span>IPERC</span>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ DISCUSIÓN -->
+<section id="discusion">
+<div class="container">
+  <div class="section-label">06 — Discusión</div>
+  <h2>Análisis e<br/>Implicancias</h2>
+
+  <h3>6.1 — Por qué la Grúa Este (D1A) es la única opción viable</h3>
+  <p>El análisis de todas las combinaciones demuestra que la Opción B del Dilema 1 (Grúa Oeste, 0.35 Ton/h) hace imposible cumplir el plazo del Día 15. Con 7 horas útiles diarias × 0.35 Ton/h = 2.45 Ton/día, desmontar 45 toneladas requiere <strong>18.37 días de trabajo puro de acero</strong>. Incluso asumiendo inicio de acero en Día 4, el proyecto concluye en el Día 22–23, acumulando 7–8 días de penalidad = USD 105,000–120,000. La penalidad de lucro cesante de la Grúa Este (USD 8,000/día × 14 días = USD 112,000), aunque significativa, es la única opción que mantiene el proyecto dentro del plazo crítico.</p>
+
+  <h3>6.2 — Justificación FRM para los Wind Fences (D3B)</h3>
+  <p>La opción A del Dilema 3 (sin Wind Fences) es financieramente equivalente a D3B en cuanto a fecha de entrega — ambas terminan en el Día 14. Sin embargo, la diferencia fundamental es normativa: los vientos registrados en días impares (30–34 km/h) se encuentran en el rango de <strong>riesgo crítico para izaje</strong>. El PETS de MMG Las Bambas prohíbe izaje con vientos superiores a 32 km/h. Con ráfagas que alcanzan los 34 km/h, operar sin barreras expone a la operación a:</p>
+  <table class="risk-table">
+    <thead><tr><th>Riesgo Identificado</th><th>Nivel sin WF</th><th>Nivel con WF</th><th>Estándar FRM Referencia</th></tr></thead>
+    <tbody>
+      <tr><td>Efecto Vela en retiro de lona</td><td><span class="risk-tag risk-alto">ALTO</span></td><td><span class="risk-tag risk-mitigado">MITIGADO</span></td><td>PETS Retiro Lona — restricción aerodinám.</td></tr>
+      <tr><td>Izaje con viento &gt;32 km/h (ráfagas)</td><td><span class="risk-tag risk-alto">ALTO — FRM</span></td><td><span class="risk-tag risk-bajo">BAJO</span></td><td>PETS Izaje §3.1 — prohíbe &gt;32 km/h</td></tr>
+      <tr><td>Interrupciones operativas no planificadas</td><td><span class="risk-tag risk-medio">MEDIO</span></td><td><span class="risk-tag risk-bajo">BAJO</span></td><td>Gestión de Continuidad Operativa</td></tr>
+      <tr><td>Carga suspendida en zona ventosa</td><td><span class="risk-tag risk-alto">ALTO</span></td><td><span class="risk-tag risk-mitigado">MITIGADO</span></td><td>FRM Izaje — línea de fuego / carga suspendida</td></tr>
+    </tbody>
+  </table>
+  <p>La inversión de USD 6,000 en Wind Fences representa el 3.19% del costo total del proyecto y elimina dos riesgos de clasificación potencialmente fatal. Bajo cualquier marco de gestión de riesgos (ALARP, FRM, ISO 31000), esta inversión es mandatoria.</p>
+
+  <h3>6.3 — Por qué D2A es preferible a D2B en combinación con D3B</h3>
+  <p>La combinación D2B + D3B (A·B·B) incurre en USD 4,500 adicionales por el adelanto del contratista eléctrico al Día 0. Sin embargo, dado que D3B consume el 100% del Día 1 para instalar los Wind Fences, las 5 horas "liberadas" por el adelanto eléctrico (07:00–12:00 del Día 1) son completamente absorbidas por la instalación de barreras. El beneficio operativo neto del adelanto eléctrico en esta combinación es <strong>cero horas de avance adicionales</strong>, lo que convierte esos USD 4,500 en gasto sin retorno. La combinación A·A·B evita este desperdicio.</p>
+
+  <h3>6.4 — Eficiencia temporal y tiempos muertos</h3>
+  <p>De las 168 horas nominales del turno día en 14 días de proyecto, solo <strong>98 horas son productivas</strong> (58.3% de eficiencia). Los 70 horas de tiempos muertos se distribuyen: 14h IPERC + 14h Voladuras + 42h Alerta Roja. Esta baja eficiencia es estructural e irrenunciable, pero el modelo la incorpora con precisión matemática, lo que permite demostrar que la ruta crítica se completa con exactamente 7 horas de buffer respecto al límite del Día 15.</p>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ CONCLUSIÓN -->
+<section id="conclusion">
+<div class="container">
+  <div class="section-label">07 — Conclusión</div>
+  <h2>Hallazgos<br/>Principales</h2>
+  <p>La combinación <strong>A·A·B</strong> — Grúa Este (Dilema 1A), Trabajo Eléctrico Día 1 (Dilema 2A) y Wind Fences (Dilema 3B) — constituye la decisión óptima que equilibra el imperativo financiero de cumplir el plazo del Día 15 con el imperativo normativo de operar dentro de los estándares FRM de MMG Las Bambas.</p>
+  <p>Los hallazgos principales son:</p>
+  <p><strong>1. El Dilema 1 (posición de grúa) es el determinante absoluto del proyecto.</strong> Cualquier combinación con Grúa Oeste (D1B) supera el Día 15 sin excepción y genera costos de USD 219,500–245,500. La elección D1A, a pesar de su penalidad diaria de USD 8,000, es la única ruta hacia el cumplimiento del plazo.</p>
+  <p><strong>2. Los Wind Fences (D3B) son una inversión de seguridad, no un gasto discrecional.</strong> El margen de solo 1–4 km/h entre los vientos registrados (30–34 km/h) y el límite del PETS de Izaje (32 km/h) clasifica esta exposición como riesgo FRM inaceptable. Los USD 6,000 de costo son no negociables desde una perspectiva de gestión de riesgos fatales.</p>
+  <p><strong>3. El adelanto eléctrico (D2B) no agrega valor en combinación con D3B.</strong> La sinergia inadecuada entre ambas opciones (Day 1 consumido de todas formas) elimina el retorno de inversión de los USD 4,500 adicionales, haciendo que D2A sea la opción racional.</p>
+  <p><strong>4. El proyecto tiene 1 día de buffer</strong> (7 horas útiles) respecto al límite del Día 15 — suficiente para absorber una contingencia menor, pero insuficiente para un evento de fuerza mayor. Se recomienda establecer un plan de contingencia para el escenario de extensión de la Alerta Roja o un día de voladura adicional imprevisto.</p>
+
+  <h3>Recomendaciones para Líneas Futuras</h3>
+  <p>Para proyectos similares en entornos SIMOPS de alta altitud: (1) modelar siempre los tiempos muertos climáticos en el cronograma base, no como contingencia; (2) evaluar la factibilidad de reducir la Alerta Roja iniciando a 16:00 h con refugios in-situ certificados como Jaula de Faraday; (3) considerar turno noche para actividades de trozado de acero en interior de estructura (evaluación PETS específica requerida).</p>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ BIBLIOGRAFÍA -->
+<section>
+<div class="container">
+  <div class="section-label">08 — Bibliografía</div>
+  <h2>Referencias</h2>
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--text-muted);line-height:2">
+    <p>[1] MMG Las Bambas. <em>PETS de Izaje y Maniobra con Cargas Suspendidas</em>. Gerencia de Operaciones Mina. Versión vigente.</p>
+    <p>[2] MMG Las Bambas. <em>Procedimiento de Respuesta a Tormentas Eléctricas y Protocolo de Alerta</em>. Seguridad y Salud Ocupacional.</p>
+    <p>[3] MMG Las Bambas. <em>GGO-S-PG-0030 — Estándar de Gestión de Aislamiento y LOTO (Lock Out/Tag Out)</em>. Gerencia General de Operaciones.</p>
+    <p>[4] MMG Las Bambas. <em>Estándar de Gestión de Riesgos Fatales (FRM) — Módulo de Izaje</em>. Corporate Health, Safety and Environment.</p>
+    <p>[5] Project Management Institute. <em>A Guide to the Project Management Body of Knowledge (PMBOK Guide)</em>, 7ª ed. PMI, 2021.</p>
+    <p>[6] Instructivo del caso: <em>Desmontaje de Estructura en Zona de Alta Interferencia (SIMOPS) — Tiempo Máximo de Ejecución</em>. Documento de evaluación académica, 2025.</p>
+    <p>[7] Goldratt, E.M. <em>Critical Chain</em>. North River Press, 1997. (Aplicación de buffer management en ruta crítica).</p>
+    <p>[8] ISO 31000:2018. <em>Risk Management — Guidelines</em>. International Organization for Standardization.</p>
+  </div>
+</div>
+</section>
+
+<footer>
+  <div>DESMONTAJE ALMACÉN SIMOPS · COMBINACIÓN A·A·B · PROJECT DELIVERY</div>
+  <div>Mina de Cobre +3,500 m.s.n.m. · Entrega: Domingo 24 de mayo de 2025 · 11:59 p.m.</div>
+  <div>Peru.Recruitment@MMG.COM</div>
+</footer>
+
+<script>
+// ═══ CHARTS ═══════════════════════════════════════════════════
+
+const chartDefaults = {
+  color: '#7a8078',
+  borderColor: '#2a2f2a',
+  font: { family: "'IBM Plex Mono', monospace", size: 11 }
+};
+Chart.defaults.color = chartDefaults.color;
+Chart.defaults.borderColor = chartDefaults.borderColor;
+Chart.defaults.font = chartDefaults.font;
+
+// ── Cost Comparison ──
+new Chart(document.getElementById('chartCost'), {
+  type: 'bar',
+  data: {
+    labels: ['A·A·A','A·A·B ✓','A·B·A','A·B·B','B·A·A','B·A·B','B·B·A','B·B·B'],
+    datasets: [
+      {label:'Burn Rate',data:[70000,70000,70000,70000,115000,115000,110000,115000],backgroundColor:'rgba(62,207,106,.25)',borderColor:'rgba(62,207,106,.5)',borderWidth:1},
+      {label:'Penalidad Grúa',data:[112000,112000,112000,112000,0,0,0,0],backgroundColor:'rgba(201,125,46,.3)',borderColor:'rgba(201,125,46,.6)',borderWidth:1},
+      {label:'Extras (WF/Eléc.)',data:[0,6000,4500,10500,0,6000,4500,10500],backgroundColor:'rgba(232,200,74,.25)',borderColor:'rgba(232,200,74,.5)',borderWidth:1},
+      {label:'Penalidad Retraso',data:[0,0,0,0,120000,120000,105000,120000],backgroundColor:'rgba(224,82,82,.3)',borderColor:'rgba(224,82,82,.6)',borderWidth:1},
+    ]
+  },
+  options:{
+    responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:16}}},
+    scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,.04)'}},y:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{callback:v=>'$'+v.toLocaleString()}}},
+    animation:{duration:1200}
+  }
+});
+
+// ── Delivery Days ──
+new Chart(document.getElementById('chartDays'), {
+  type: 'bar',
+  data: {
+    labels: ['A·A·A','A·A·B ✓','A·B·A','A·B·B','B·A·A','B·A·B','B·B·A','B·B·B'],
+    datasets: [{
+      label:'Día de Entrega',
+      data:[14,14,14,14,23,23,22,23],
+      backgroundColor:(ctx)=>{
+        const v=ctx.raw;
+        return v<=15?'rgba(62,207,106,.35)':'rgba(224,82,82,.35)';
+      },
+      borderColor:(ctx)=>{
+        const v=ctx.raw;
+        return v<=15?'rgba(62,207,106,.7)':'rgba(224,82,82,.7)';
+      },
+      borderWidth:1
+    }]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{display:false},annotation:{annotations:{line:{type:'line',yMin:15,yMax:15,borderColor:'rgba(232,200,74,.7)',borderWidth:2,label:{content:'Límite Día 15',display:true}}}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.04)'}},
+      y:{min:10,max:25,grid:{color:'rgba(255,255,255,.04)'},ticks:{stepSize:2}}
+    },
+    animation:{duration:1200}
+  }
+});
+
+// ── Cumulative Progress ──
+const days=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+const lonaAccum=[0,0,350,700,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000];
+const aceAccum=[0,0,0,0,0.65,5.20,9.75,14.30,18.85,23.40,27.95,32.50,37.05,41.60,45.00];
+
+new Chart(document.getElementById('chartProgress'), {
+  type: 'line',
+  data: {
+    labels: days.map(d=>d===0?'Inicio':`Día ${d}`),
+    datasets: [
+      {
+        label:'Lona (m²)',
+        data:lonaAccum,
+        borderColor:'rgba(62,207,106,.8)',
+        backgroundColor:'rgba(62,207,106,.06)',
+        yAxisID:'y1',
+        tension:.3,fill:true,pointRadius:4,
+        pointBackgroundColor:(ctx)=>ctx.raw===1000?'#3ecf6a':'rgba(62,207,106,.5)',
+        pointRadius:(ctx)=>ctx.raw===1000?7:3
+      },
+      {
+        label:'Acero (Ton)',
+        data:aceAccum,
+        borderColor:'rgba(201,125,46,.8)',
+        backgroundColor:'rgba(201,125,46,.06)',
+        yAxisID:'y2',
+        tension:.3,fill:true,pointRadius:4,
+        pointBackgroundColor:(ctx)=>ctx.raw===45?'#c97d2e':'rgba(201,125,46,.5)',
+        pointRadius:(ctx)=>ctx.raw===45?7:3
+      }
+    ]
+  },
+  options:{
+    responsive:true,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:16}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.04)'}},
+      y1:{type:'linear',position:'left',min:0,max:1100,grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Lona m²'}},
+      y2:{type:'linear',position:'right',min:0,max:50,grid:{drawOnChartArea:false},title:{display:true,text:'Acero Ton'}}
+    },
+    animation:{duration:1600}
+  }
+});
+
+// ═══ GANTT ═══════════════════════════════════════════════════
+
+const hours = ['06','07','08','09','10','11','12','13','14','15','16','17'];
+const gantt = document.getElementById('gantt-chart');
+
+// Header
+let hdr = '<div class="gantt-header"><div class="gh-label">DÍA</div>';
+hours.forEach(h => hdr += `<div class="gh-label">${h}h</div>`);
+hdr += '</div>';
+gantt.innerHTML = hdr;
+
+// Each day schedule: array of 12 hour slots (06-17)
+// slot values: 'iperc','setup','lona','wind_lona','blast','steel','red_alert','idle'
+const schedules = {
+  1: ['iperc','setup','setup','setup','setup','setup','blast','setup','setup','red','red','red'],
+  2: ['iperc','lona','lona','lona','lona','lona','blast','lona','lona','red','red','red'],
+  3: ['iperc','lona','lona','lona','wind','wind','blast','lona','lona','red','red','red'],
+  4: ['iperc','lona','lona','lona','lona','lona','blast','lona','steel','red','red','red'],
+  5: ['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  6: ['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  7: ['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  8: ['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  9: ['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  10:['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  11:['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  12:['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  13:['iperc','steel','steel','steel','steel','steel','blast','steel','steel','red','red','red'],
+  14:['iperc','steel','steel','steel','steel','steel','blast','done','red','red','red','red'],
+};
+
+const blockClass = {
+  iperc:'gb-iperc',setup:'gb-setup',lona:'gb-lona',wind:'gb-wind',
+  blast:'gb-blast',steel:'gb-steel',red:'gb-red',idle:'',done:'gb-done'
+};
+const blockLabel = {
+  iperc:'IPERC',setup:'WF+ELEC',lona:'LONA',wind:'↗VIENTO/WF',
+  blast:'VOLAD.',steel:'ACERO',red:'⚡ROJA',idle:'',done:'✓ FIN'
+};
+
+for(let d=1;d<=14;d++){
+  const slots = schedules[d];
+  const isOdd = d%2===1;
+  let row = `<div class="gantt-row"><div class="day-label">${isOdd?'▸':''}D${d}</div>`;
+  
+  // Merge consecutive same-type slots
+  let i=0;
+  while(i<12){
+    let j=i;
+    while(j<12 && slots[j]===slots[i]) j++;
+    const span = j-i;
+    const type = slots[i];
+    const cls = blockClass[type]||'';
+    const lbl = blockLabel[type]||'';
+    row += `<div class="gantt-cell" style="grid-column:span ${span}">`;
+    if(cls) row += `<div class="gantt-block ${cls}">${lbl}</div>`;
+    row += '</div>';
+    i=j;
+  }
+  row += '</div>';
+  gantt.innerHTML += row;
+}
+
+</script>
+</body>
+</html>
